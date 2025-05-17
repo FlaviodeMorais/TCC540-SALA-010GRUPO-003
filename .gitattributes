@@ -1,0 +1,4 @@
+*.db filter=lfs diff=lfs merge=lfs -text
+public/zi* filter=lfs diff=lfs merge=lfs -text
+zi* filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
