@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download do Sistema de Monitoramento Aquapônico</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 20px;
+        }
+        .download-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .download-link {
+            display: inline-block;
+            margin: 10px 0;
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .download-link:hover {
+            background-color: #2980b9;
+        }
+        .instructions {
+            background-color: #e8f4fc;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .instructions ul {
+            padding-left: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Monitoramento Aquapônico - TCC</h1>
+        
+        <div class="download-section">
+            <h2>Arquivos para Download</h2>
+            <p>Abaixo estão os arquivos para implantação do sistema de monitoramento aquapônico desenvolvido para o TCC:</p>
+            
+            <h3>Backend (para Render.com)</h3>
+            <a href="/downloads/TCC.BACK_complete.zip" class="download-link">Baixar TCC.BACK_complete.zip</a>
+            <p>Pacote completo para implantação do backend no Render.</p>
+            
+            <h3>Frontend (para GitHub Pages)</h3>
+            <a href="/downloads/TCC.FRONT.zip" class="download-link">Baixar TCC.FRONT.zip</a>
+            <p>Arquivos básicos para implantação do frontend no GitHub Pages.</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>Instruções para Implantação</h3>
+            
+            <h4>Para o Backend (Render):</h4>
+            <ol>
+                <li>Crie uma conta em <a href="https://render.com" target="_blank">render.com</a> se ainda não tiver</li>
+                <li>Extraia o arquivo TCC.BACK_complete.zip</li>
+                <li>Faça upload do conteúdo para um repositório GitHub</li>
+                <li>No Render, selecione "New Web Service" e conecte ao seu repositório GitHub</li>
+                <li>Configure as seguintes variáveis de ambiente:
+                    <pre>
+THINGSPEAK_CHANNEL_ID=2886349
+THINGSPEAK_READ_KEY=HKYT3SCF97WUG6OI
+THINGSPEAK_WRITE_KEY=OQKOVTQQJ4I0PIPQ</pre>
+                </li>
+                <li>Defina o comando de construção: <code>npm install</code></li>
+                <li>Defina o comando de início: <code>npm start</code></li>
+                <li>Clique em "Create Web Service"</li>
+            </ol>
+            
+            <h4>Para o Frontend (GitHub Pages):</h4>
+            <ol>
+                <li>Extraia o arquivo TCC.FRONT.zip</li>
+                <li>Faça upload do conteúdo para um repositório GitHub</li>
+                <li>No arquivo <code>.env.production</code>, atualize a URL do backend para o endereço do seu serviço no Render</li>
+                <li>Nas configurações do repositório, ative o GitHub Pages apontando para a branch principal</li>
+                <li>Execute o comando <code>npm run deploy</code> para publicar o site</li>
+            </ol>
+        </div>
+        
+        <div class="footer">
+            <p>Desenvolvido por Flavio de Morais - TCC UNIVESP</p>
+            <p>Sistema de Monitoramento de Aquaponia - 2025</p>
+        </div>
+    </div>
+</body>
+</html>

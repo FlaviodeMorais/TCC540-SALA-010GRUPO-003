@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download do Sistema de Monitoramento Aquapônico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f7f9;
+            color: #333;
+        }
+        h1, h2 {
+            color: #005e7c;
+        }
+        .download-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .download-link {
+            display: inline-block;
+            background-color: #0095c8;
+            color: white;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: background-color 0.3s;
+        }
+        .download-link:hover {
+            background-color: #007aa3;
+        }
+        .instructions {
+            background-color: #e4f5f0;
+            padding: 20px;
+            border-left: 4px solid #00a884;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .method {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+        }
+        .important {
+            color: #d9534f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Monitoramento Aquapônico</h1>
+        
+        <div class="download-section">
+            <h2>Obter Cópia do Sistema</h2>
+            <p>Para obter uma cópia do sistema de monitoramento aquapônico que está sendo executado atualmente, você pode utilizar um dos métodos abaixo:</p>
+            
+            <div class="method">
+                <h3>Método 1: Download via GitHub</h3>
+                <p>Clone o repositório diretamente do GitHub utilizando o seguinte comando:</p>
+                <code>git clone https://github.com/seuusuario/aquaponia-monitor.git</code>
+                <p>Este método garante que você tenha acesso ao código-fonte completo e ao histórico de alterações.</p>
+            </div>
+            
+            <div class="method">
+                <h3>Método 2: Download dos Arquivos Essenciais</h3>
+                <p>Solicite ao administrador do sistema o arquivo <code>aquaponia_sistema_essencial.zip</code> que contém todos os componentes necessários.</p>
+                
+                <p>Alternativamente, acesse o sistema no seguinte endereço para verificar se o download está disponível:</p>
+                <a href="/download" class="download-link">Verificar Disponibilidade de Download</a>
+            </div>
+            
+            <div class="method">
+                <h3>Método 3: Exportação do Banco de Dados Atual</h3>
+                <p>Se você precisar apenas dos dados mais recentes do sistema, solicite ao administrador uma exportação do banco de dados.</p>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>Instruções de Instalação</h2>
+            
+            <ol>
+                <li>Extraia o conteúdo do arquivo ZIP (se utilizar o Método 2) ou clone o repositório (se utilizar o Método 1)</li>
+                <li>Instale as dependências com o comando: <code>npm install</code></li>
+                <li>Configure as variáveis de ambiente no arquivo <code>.env</code> utilizando os seguintes valores:</li>
+                <pre><code>THINGSPEAK_READ_API_KEY=5UWNQD21RD2A7QHG
+THINGSPEAK_WRITE_API_KEY=9NG6QLIN8UXLE2AH
+THINGSPEAK_CHANNEL_ID=2840207
+REFRESH_INTERVAL=300000
+PORT=3000
+DATABASE_FILE=aquaponia.db
+BACKUP_DATABASE_FILE=aquaponia_backup.db</code></pre>
+                <li>Execute o sistema com: <code>npm run dev</code></li>
+                <li>Acesse o sistema em seu navegador através de: <code>http://localhost:3000</code></li>
+            </ol>
+            
+            <h3>Requisitos do Sistema</h3>
+            <ul>
+                <li>Node.js 18 ou superior</li>
+                <li>NPM 8 ou superior</li>
+                <li>Mínimo de 200MB de espaço em disco</li>
+                <li>Conexão com internet (para comunicação com ThingSpeak)</li>
+            </ul>
+            
+            <p class="important">Nota: Em caso de dúvidas ou dificuldades na instalação, entre em contato com a equipe de desenvolvimento.</p>
+        </div>
+    </div>
+</body>
+</html>

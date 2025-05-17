@@ -1,0 +1,20 @@
+{
+  "base": ".",
+  "outDir": "./client/dist",
+  "environment": "production",
+  "features": {
+    "directThingspeakAccess": true,
+    "directDeviceControl": false
+  },
+  "thingspeak": {
+    "channelId": "2840207",
+    "readApiKey": "5UWNQD21RD2A7QHG",
+    "writeApiKey": "9NG6QLIN8UXLE2AH"
+  },
+  "routes": {
+    "fallback": "/index.html",
+    "redirects": [
+      { "from": "/*", "to": "/index.html", "status": 200 }
+    ]
+  }
+}

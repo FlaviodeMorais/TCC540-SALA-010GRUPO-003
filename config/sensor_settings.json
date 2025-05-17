@@ -1,0 +1,13 @@
+{
+  "thresholds": {
+    "temperatureMin": 22,
+    "temperatureMax": 30,
+    "levelMin": 60,
+    "levelMax": 90
+  },
+  "fallback": {
+    "autoFallback": true,
+    "failureThreshold": 3,
+    "recoveryThreshold": 2
+  }
+}

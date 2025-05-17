@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnóstico React - Aquaponia</title>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    h1, h2 {
+      color: #38bdf8;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: rgba(30, 41, 59, 0.7);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .test-section {
+      margin-bottom: 30px;
+      padding: 15px;
+      background-color: rgba(15, 23, 42, 0.7);
+      border-radius: 8px;
+    }
+    
+    .status {
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      display: inline-block;
+      margin-left: 10px;
+    }
+    
+    .success {
+      background-color: #10b981;
+      color: white;
+    }
+    
+    .error {
+      background-color: #ef4444;
+      color: white;
+    }
+    
+    .warning {
+      background-color: #f59e0b;
+      color: black;
+    }
+    
+    .pending {
+      background-color: #6366f1;
+      color: white;
+    }
+    
+    pre {
+      background-color: #1e293b;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 14px;
+    }
+    
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background-color: #2563eb;
+    }
+    
+    .navigation {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .navigation a {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #1e40af;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      margin: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Diagnóstico de React - Sistema Aquaponia</h1>
+    <p><strong>Data e Hora:</strong> <span id="current-time"></span></p>
+    
+    <div class="test-section">
+      <h2>1. Verificação do Ambiente <span id="env-status" class="status pending">PENDENTE</span></h2>
+      <div id="env-results"></div>
+      <button onclick="testEnvironment()">Testar Ambiente</button>
+    </div>
+    
+    <div class="test-section">
+      <h2>2. Verificação da Conexão API <span id="api-status" class="status pending">PENDENTE</span></h2>
+      <div id="api-results"></div>
+      <button onclick="testAPI()">Testar API</button>
+    </div>
+    
+    <div class="test-section">
+      <h2>3. Verificação de Scripts React <span id="react-status" class="status pending">PENDENTE</span></h2>
+      <div id="react-results"></div>
+      <button onclick="testReactScripts()">Testar Scripts React</button>
+    </div>
+    
+    <div class="test-section">
+      <h2>4. Teste de Renderização <span id="render-status" class="status pending">PENDENTE</span></h2>
+      <div id="react-test-target"></div>
+      <div id="render-results"></div>
+      <button onclick="testRendering()">Testar Renderização</button>
+    </div>
+    
+    <div class="navigation">
+      <a href="/">Voltar para o Dashboard</a>
+      <a href="/test.html">Ir para Teste Estático</a>
+    </div>
+  </div>
+  
+  <script>
+    // Atualiza a hora atual
+    document.getElementById('current-time').textContent = new Date().toLocaleString('pt-BR');
+    
+    // Teste 1: Verificação do Ambiente
+    async function testEnvironment() {
+      const statusEl = document.getElementById('env-status');
+      const resultsEl = document.getElementById('env-results');
+      
+      statusEl.className = 'status pending';
+      statusEl.textContent = 'VERIFICANDO...';
+      resultsEl.innerHTML = 'Verificando ambiente...';
+      
+      try {
+        // Verifica o navegador
+        const browserInfo = `Navegador: ${navigator.userAgent}`;
+        
+        // Verifica se o Vite está funcionando
+        const viteCheck = await fetch('/@vite/client', { method: 'HEAD' })
+          .then(res => res.ok ? 'Vite Client: ✅ Disponível' : 'Vite Client: ❌ Não disponível')
+          .catch(() => 'Vite Client: ❌ Erro ao conectar');
+        
+        // Verifica se consegue acessar o CSS principal
+        const cssCheck = await fetch('/src/index.css', { method: 'HEAD' })
+          .then(res => res.ok ? 'CSS Principal: ✅ Disponível' : 'CSS Principal: ❌ Não disponível')
+          .catch(() => 'CSS Principal: ❌ Erro ao conectar');
+        
+        // Resultado
+        resultsEl.innerHTML = `
+          <pre>${browserInfo}\n${viteCheck}\n${cssCheck}</pre>
+        `;
+        
+        if (viteCheck.includes('✅') && cssCheck.includes('✅')) {
+          statusEl.className = 'status success';
+          statusEl.textContent = 'OK';
+        } else {
+          statusEl.className = 'status warning';
+          statusEl.textContent = 'ALERTA';
+        }
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'ERRO';
+        resultsEl.innerHTML = `<pre>Erro ao verificar ambiente: ${error.message}</pre>`;
+      }
+    }
+    
+    // Teste 2: Verificação da API
+    async function testAPI() {
+      const statusEl = document.getElementById('api-status');
+      const resultsEl = document.getElementById('api-results');
+      
+      statusEl.className = 'status pending';
+      statusEl.textContent = 'VERIFICANDO...';
+      resultsEl.innerHTML = 'Testando conexão com a API...';
+      
+      try {
+        // Teste de API: últimas leituras
+        const latestResponse = await fetch('/api/readings/latest')
+          .then(res => {
+            const status = res.ok ? '✅' : '❌';
+            return res.json().then(data => ({
+              status,
+              statusText: res.statusText,
+              data: data
+            })).catch(() => ({
+              status: '❌',
+              statusText: 'Erro ao processar JSON',
+              data: null
+            }));
+          })
+          .catch(error => ({
+            status: '❌',
+            statusText: error.message,
+            data: null
+          }));
+        
+        // Formatando o resultado (limitado para evitar sobrecarregar a página)
+        let dataStr = 'N/A';
+        if (latestResponse.data) {
+          if (latestResponse.data.readings && latestResponse.data.readings.length > 0) {
+            dataStr = `${latestResponse.data.readings.length} leituras disponíveis`;
+          } else {
+            dataStr = 'Nenhuma leitura disponível';
+          }
+        }
+        
+        // Resultado
+        resultsEl.innerHTML = `
+          <pre>GET /api/readings/latest: ${latestResponse.status} ${latestResponse.statusText}
+Dados: ${dataStr}</pre>
+        `;
+        
+        if (latestResponse.status === '✅') {
+          statusEl.className = 'status success';
+          statusEl.textContent = 'OK';
+        } else {
+          statusEl.className = 'status error';
+          statusEl.textContent = 'ERRO';
+        }
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'ERRO';
+        resultsEl.innerHTML = `<pre>Erro ao testar API: ${error.message}</pre>`;
+      }
+    }
+    
+    // Teste 3: Verificação de Scripts React
+    async function testReactScripts() {
+      const statusEl = document.getElementById('react-status');
+      const resultsEl = document.getElementById('react-results');
+      
+      statusEl.className = 'status pending';
+      statusEl.textContent = 'VERIFICANDO...';
+      resultsEl.innerHTML = 'Verificando scripts do React...';
+      
+      try {
+        // Verifica o arquivo main.tsx
+        const mainCheck = await fetch('/src/main.tsx')
+          .then(res => {
+            if (res.ok) {
+              return res.text().then(text => ({
+                status: '✅',
+                content: text.substring(0, 150) + '...'
+              }));
+            } else {
+              return {
+                status: '❌',
+                content: `Error: ${res.status} ${res.statusText}`
+              };
+            }
+          })
+          .catch(error => ({
+            status: '❌',
+            content: `Error: ${error.message}`
+          }));
+        
+        // Verifica o arquivo App.tsx
+        const appCheck = await fetch('/src/App.tsx')
+          .then(res => {
+            if (res.ok) {
+              return res.text().then(text => ({
+                status: '✅',
+                content: text.substring(0, 150) + '...'
+              }));
+            } else {
+              return {
+                status: '❌',
+                content: `Error: ${res.status} ${res.statusText}`
+              };
+            }
+          })
+          .catch(error => ({
+            status: '❌',
+            content: `Error: ${error.message}`
+          }));
+        
+        // Resultado
+        resultsEl.innerHTML = `
+          <pre>main.tsx: ${mainCheck.status}
+${mainCheck.content}
+
+App.tsx: ${appCheck.status}
+${appCheck.content}</pre>
+        `;
+        
+        if (mainCheck.status === '✅' && appCheck.status === '✅') {
+          statusEl.className = 'status success';
+          statusEl.textContent = 'OK';
+        } else {
+          statusEl.className = 'status error';
+          statusEl.textContent = 'ERRO';
+        }
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'ERRO';
+        resultsEl.innerHTML = `<pre>Erro ao verificar scripts: ${error.message}</pre>`;
+      }
+    }
+    
+    // Teste 4: Teste de Renderização
+    async function testRendering() {
+      const statusEl = document.getElementById('render-status');
+      const resultsEl = document.getElementById('render-results');
+      const targetEl = document.getElementById('react-test-target');
+      
+      statusEl.className = 'status pending';
+      statusEl.textContent = 'VERIFICANDO...';
+      resultsEl.innerHTML = 'Testando renderização React...';
+      
+      try {
+        // Cria um elemento de teste
+        targetEl.innerHTML = '<div id="react-test-root" style="padding: 10px; background-color: #334155; border-radius: 6px; margin-bottom: 10px;">Carregando componente de teste...</div>';
+        
+        // Tenta carregar o React e ReactDOM
+        const reactResult = await loadScript('https://unpkg.com/react@18/umd/react.production.min.js');
+        const reactDomResult = await loadScript('https://unpkg.com/react-dom@18/umd/react-dom.production.min.js');
+        
+        if (reactResult && reactDomResult && window.React && window.ReactDOM) {
+          // React e ReactDOM carregados com sucesso
+          const { createElement } = window.React;
+          const { createRoot } = window.ReactDOM;
+          
+          // Componente simples
+          const TestComponent = () => {
+            return createElement('div', { 
+              style: { 
+                padding: '10px', 
+                backgroundColor: '#0ea5e9', 
+                color: 'white',
+                borderRadius: '4px' 
+              } 
+            }, 'Componente React renderizado com sucesso!');
+          };
+          
+          // Renderiza o componente
+          const rootElement = document.getElementById('react-test-root');
+          if (rootElement) {
+            const root = createRoot(rootElement);
+            root.render(createElement(TestComponent));
+            
+            statusEl.className = 'status success';
+            statusEl.textContent = 'OK';
+            resultsEl.innerHTML = `
+              <pre>✅ React v${window.React.version} carregado com sucesso
+✅ ReactDOM carregado com sucesso
+✅ Componente de teste renderizado</pre>
+            `;
+          } else {
+            throw new Error('Elemento raiz não encontrado');
+          }
+        } else {
+          throw new Error('Falha ao carregar React e/ou ReactDOM');
+        }
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'ERRO';
+        resultsEl.innerHTML = `<pre>Erro ao testar renderização: ${error.message}</pre>`;
+        targetEl.innerHTML = '<div style="padding: 10px; background-color: #ef4444; color: white; border-radius: 6px;">Falha na renderização do componente de teste</div>';
+      }
+    }
+    
+    // Função auxiliar para carregar scripts
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error(`Falha ao carregar script: ${src}`));
+        document.head.appendChild(script);
+      });
+    }
+  </script>
+</body>
+</html>

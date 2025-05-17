@@ -1,0 +1,450 @@
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useDeviceMode } from '@/contexts/DeviceModeContext';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VirtualSensorsPanel } from '@/components/emulator/VirtualSensorsPanel';
+import SensorHealthCard from '@/components/emulator/SensorHealthCard';
+import SensorSourceControl from '@/components/emulator/SensorSourceControl';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Interface para configuração do sensor
+interface SensorConfig {
+  min: number;
+  max: number;
+  current: number;
+  fluctuation: number;
+}
+
+// Interface para configuração do emulador
+interface EmulatorConfig {
+  enabled: boolean;
+  updateInterval: number;
+  sensorRanges: {
+    waterTemp: SensorConfig;
+    airTemp: SensorConfig;
+    waterLevel: SensorConfig;
+    flowRate: SensorConfig;
+    humidity: SensorConfig;
+    pumpPressure: SensorConfig;
+    phLevel: SensorConfig;
+    oxygenLevel: SensorConfig;
+  };
+  controlStates: {
+    pumpStatus: boolean;
+    heaterStatus: boolean;
+    pumpFlow: number;
+  };
+  mode: 'stable' | 'fluctuating' | 'random' | 'scenario';
+  scenarioName?: string;
+}
+
+// Interface para status do emulador
+interface EmulatorStatus {
+  enabled: boolean;
+  config: EmulatorConfig;
+  lastReading: any;
+}
+
+export default function DataSource() {
+  const { toast } = useToast();
+  const { mode, setMode } = useDeviceMode();
+  const [currentTab, setCurrentTab] = useState('emulator');
+  const [emulatorConfig, setEmulatorConfig] = useState<EmulatorConfig>({
+    enabled: false,
+    updateInterval: 5000,
+    mode: 'stable',
+    sensorRanges: {
+      waterTemp: { min: 20, max: 30, current: 25, fluctuation: 0.2 },
+      airTemp: { min: 18, max: 35, current: 22, fluctuation: 0.3 },
+      waterLevel: { min: 0, max: 100, current: 80, fluctuation: 1 },
+      flowRate: { min: 0, max: 10, current: 5, fluctuation: 0.5 },
+      humidity: { min: 40, max: 90, current: 60, fluctuation: 2 },
+      pumpPressure: { min: 0, max: 10, current: 5, fluctuation: 0.2 },
+      phLevel: { min: 6, max: 8.5, current: 7.2, fluctuation: 0.2 },
+      oxygenLevel: { min: 5, max: 15, current: 8.5, fluctuation: 0.5 }
+    },
+    controlStates: {
+      pumpStatus: false,
+      heaterStatus: false,
+      pumpFlow: 70
+    }
+  });
+  const [configModified, setConfigModified] = useState(false);
+  
+  // Buscar status atual do emulador
+  const { data: emulatorStatus, isLoading: isLoadingStatus, refetch: refetchEmulatorStatus } = useQuery({
+    queryKey: ['/api/emulator/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/emulator/status', {
+        method: 'GET',
+      });
+      if (!response.ok) throw new Error('Falha ao obter status do emulador');
+      return await response.json();
+    },
+    refetchInterval: 5000,
+    staleTime: 2000,
+  });
+  
+  // Buscar cenários disponíveis
+  const { data: scenariosData } = useQuery({
+    queryKey: ['/api/emulator/scenarios'],
+    queryFn: async () => {
+      const response = await fetch('/api/emulator/scenarios', {
+        method: 'GET',
+      });
+      if (!response.ok) throw new Error('Falha ao obter cenários');
+      return await response.json();
+    },
+  });
+  
+  // Atualizar configuração quando os dados do emulador forem carregados
+  useEffect(() => {
+    if (emulatorStatus && emulatorStatus.config) {
+      // Se o usuário estiver editando (configModified=true), não substitua os valores atuais
+      if (!configModified) {
+        // Atualizar completamente a configuração com todos os valores do servidor
+        setEmulatorConfig(emulatorStatus.config);
+      }
+    }
+  }, [emulatorStatus, configModified]);
+  
+  // Iniciar o emulador
+  const startEmulator = async () => {
+    try {
+      const response = await fetch('/api/emulator/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emulatorConfig)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          toast({
+            title: "Emulador iniciado",
+            description: "O emulador foi iniciado com sucesso.",
+          });
+          
+          // Atualizar modo para EMULATOR
+          setMode('EMULATOR');
+          
+          // Recarregar status
+          refetchEmulatorStatus();
+        }
+      } else {
+        throw new Error("Falha ao iniciar o emulador");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Falha ao iniciar o emulador: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Parar o emulador
+  const stopEmulator = async () => {
+    try {
+      const response = await fetch('/api/emulator/stop', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Emulador parado",
+          description: "O emulador foi parado com sucesso.",
+        });
+        
+        // Atualizar modo para NODEMCU
+        setMode('NODEMCU');
+        
+        // Recarregar status
+        refetchEmulatorStatus();
+      } else {
+        throw new Error("Falha ao parar o emulador");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Falha ao parar o emulador: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Atualizar configuração de sensores
+  const updateSensorConfig = (sensorKey: keyof EmulatorConfig['sensorRanges'], property: keyof SensorConfig, value: number) => {
+    setEmulatorConfig(prev => {
+      // Criar uma nova cópia profunda para garantir que todas as propriedades sejam mantidas
+      const newConfig = { ...prev };
+      
+      // Garantir que sensorRanges exista
+      if (!newConfig.sensorRanges) {
+        newConfig.sensorRanges = { ...emulatorConfig.sensorRanges };
+      }
+      
+      // Garantir que o sensor específico exista
+      if (!newConfig.sensorRanges[sensorKey]) {
+        newConfig.sensorRanges[sensorKey] = { ...emulatorConfig.sensorRanges[sensorKey] };
+      }
+      
+      // Atualizar a propriedade específica
+      newConfig.sensorRanges[sensorKey] = {
+        ...newConfig.sensorRanges[sensorKey],
+        [property]: value
+      };
+      
+      return newConfig;
+    });
+    
+    // Marcar que a configuração foi modificada
+    setConfigModified(true);
+  };
+  
+  // Atualizar configuração de controle
+  const updateControlState = (controlKey: keyof EmulatorConfig['controlStates'], value: boolean | number) => {
+    setEmulatorConfig(prev => {
+      // Criar uma nova cópia profunda
+      const newConfig = { ...prev };
+      
+      // Garantir que controlStates exista
+      if (!newConfig.controlStates) {
+        newConfig.controlStates = { ...emulatorConfig.controlStates };
+      }
+      
+      // Atualizar o estado específico
+      newConfig.controlStates = {
+        ...newConfig.controlStates,
+        [controlKey]: value
+      };
+      
+      return newConfig;
+    });
+    
+    // Marcar que a configuração foi modificada
+    setConfigModified(true);
+  };
+  
+  // Atualizar configuração do emulador
+  const updateEmulatorConfig = async () => {
+    try {
+      const response = await fetch('/api/emulator/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emulatorConfig)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          toast({
+            title: "Configuração atualizada",
+            description: "A configuração do emulador foi atualizada com sucesso.",
+          });
+          
+          // Reset the modified flag after successful save
+          setConfigModified(false);
+          
+          // Recarregar status
+          refetchEmulatorStatus();
+        } else {
+          throw new Error(data.message || "Erro desconhecido ao atualizar configuração");
+        }
+      } else {
+        throw new Error("Falha ao atualizar configuração");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Falha ao atualizar configuração: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Carregar cenário específico
+  const loadScenario = async (scenarioName: string) => {
+    try {
+      const response = await fetch(`/api/emulator/scenarios/${scenarioName}`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          toast({
+            title: "Cenário carregado",
+            description: `O cenário "${scenarioName}" foi carregado com sucesso.`,
+          });
+          
+          // Atualizar configuração local completamente
+          if (data.config) {
+            setEmulatorConfig(data.config);
+          }
+          
+          // Recarregar status após um breve intervalo
+          setTimeout(() => {
+            refetchEmulatorStatus();
+          }, 1000);
+        } else {
+          throw new Error(data.error || "Cenário não encontrado");
+        }
+      } else {
+        throw new Error("Falha ao carregar cenário");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Falha ao carregar cenário: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Verificar se o emulador está ativo
+  const isEmulatorActive = emulatorStatus && emulatorStatus.enabled;
+  
+  // Função para alternar entre modos NODEMCU e EMULADOR
+  const toggleDeviceMode = () => {
+    if (mode === 'NODEMCU') {
+      if (!isEmulatorActive) {
+        // Se o emulador não estiver ativo, iniciá-lo primeiro
+        startEmulator();
+      } else {
+        // Apenas mudar o modo se o emulador já estiver ativo
+        setMode('EMULATOR');
+      }
+    } else {
+      // Desligar o emulador e mudar para modo NODEMCU
+      stopEmulator();
+    }
+  };
+  
+  // Sensores com seus rótulos
+  const sensorLabels: Record<string, string> = {
+    waterTemp: 'Temperatura da Água (°C)',
+    airTemp: 'Temperatura do Ar (°C)',
+    waterLevel: 'Nível da Água (%)',
+    flowRate: 'Vazão (L/min)',
+    humidity: 'Umidade (%)',
+    pumpPressure: 'Pressão da Bomba (kPa)',
+    phLevel: 'pH',
+    oxygenLevel: 'Nível de Oxigênio (mg/L)'
+  };
+  
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold mb-1">Fonte de Dados</h1>
+          <p className="text-gray-500">Gerenciar fontes de dados e simulador de sensores</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-muted/20 p-2 rounded-lg">
+            <Badge variant={mode === 'NODEMCU' ? 'default' : 'outline'} className="text-sm font-medium py-1.5 px-3">
+              <i className="fas fa-microchip mr-1.5"></i> NodeMCU
+            </Badge>
+            <Badge variant={mode === 'EMULATOR' ? 'default' : 'outline'} className="text-sm font-medium py-1.5 px-3">
+              <i className="fas fa-laptop-code mr-1.5"></i> Emulador
+            </Badge>
+          </div>
+        </div>
+      </div>
+      
+      {/* Botões de ação rápida para mobile */}
+      <div className="flex flex-wrap gap-2 mb-4 md:hidden">
+        <Button 
+          onClick={isEmulatorActive ? stopEmulator : startEmulator}
+          variant={isEmulatorActive ? "destructive" : "default"}
+          className="w-full"
+        >
+          <i className={`fas ${isEmulatorActive ? 'fa-stop-circle' : 'fa-play-circle'} mr-2`}></i>
+          {isEmulatorActive ? 'Parar Emulador' : 'Iniciar Emulador'}
+        </Button>
+        
+        {configModified && (
+          <Button 
+            onClick={updateEmulatorConfig}
+            variant="outline"
+            className="w-full"
+          >
+            <i className="fas fa-save mr-2"></i>
+            Salvar Configurações
+          </Button>
+        )}
+      </div>
+      
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
+        <TabsList className="grid grid-cols-2 w-full max-w-xl">
+          <TabsTrigger value="emulator">Emulador</TabsTrigger>
+          <TabsTrigger value="config">Configurações</TabsTrigger>
+        </TabsList>
+        
+
+        
+        {/* Tab: Emulador */}
+        <TabsContent value="emulator" className="space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl">Controle do Emulador</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5">
+                {/* Status do Emulador e Botão para Ligar/Desligar */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-medium">Status do Emulador</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {isEmulatorActive 
+                        ? "O emulador está em execução e gerando dados de sensores" 
+                        : "O emulador está desligado, ative-o para simular sensores"}
+                    </p>
+                  </div>
+                  <div className="mt-4 md:mt-0">
+                    {isEmulatorActive ? (
+                      <Button 
+                        variant="outline" 
+                        onClick={stopEmulator} 
+                        className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700"
+                      >
+                        <i className="fas fa-stop-circle mr-2"></i>
+                        Parar Emulador
+                      </Button>
+                    ) : (
+                      <Button onClick={startEmulator}>
+                        <i className="fas fa-play-circle mr-2"></i>
+                        Iniciar Emulador
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Modo de Operação */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Modo de Operação</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Modo do Emulador</Label>
+                        <Select 
+                          value={emulatorConfig.mode} 
+                          onValueChange={(value: any) => {
+                            setEmulatorConfig({
+                              ...emulatorConfig,
+                              mode: value as 'stable' | 'fluctuating' | 'random' | 'scenario'

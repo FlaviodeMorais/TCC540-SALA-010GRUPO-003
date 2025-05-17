@@ -1,0 +1,484 @@
+import { HorizontalLevelBar } from "@/components/charts/HorizontalLevelBar";
+import { HorizontalTemperatureBar } from "@/components/charts/HorizontalTemperatureBar";
+import { ReadingsResponse, getHistoricalReadings } from "@/lib/thingspeakApi";
+import { formatDateForQuery, formatNumber, formatTime } from "@/lib/utils";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { Reading } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { DateRange } from "react-day-picker";
+import { addDays } from "date-fns";
+import { CompactDateRangePicker } from "@/components/ui/compact-date-range-picker";
+
+// Função auxiliar para converter nível de água para percentual (0-100)
+function convertLevelToPercent(value: number): number {
+  // Se o valor já for percentual (>1), retornar como está
+  if (value > 1) return value;
+  // Se for decimal (0-1), multiplicar por 100
+  return value * 100;
+}
+
+interface DashboardChartsProps {
+  data?: ReadingsResponse;
+  isLoading: boolean;
+  is24HourScale?: boolean;
+  chartStyle?: string;
+  latestReading?: Reading; // Nova propriedade para receber a leitura mais recente
+}
+
+export function DashboardCharts({ 
+  data, 
+  isLoading, 
+  is24HourScale = false,
+  chartStyle = "classic",
+  latestReading // Recebe a leitura mais recente em tempo real
+}: DashboardChartsProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const today = new Date();
+  
+  // Estado para armazenar setpoints e garantir atualizações
+  const [tempSetpoints, setTempSetpoints] = useState({ min: 24, max: 28, avg: 26 });
+  const [levelSetpoints, setLevelSetpoints] = useState({ min: 40, max: 80, avg: 60 });
+  
+  // Estados para os seletores de data
+  const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>({
+    from: addDays(today, -1),
+    to: today
+  });
+  
+  const [levelDateRange, setLevelDateRange] = useState<DateRange | undefined>({
+    from: addDays(today, -1),
+    to: today
+  });
+  
+  // Determinar se há dados suficientes e obter a data mais recente para o título
+  const hasData = data && data.readings && data.readings.length > 0;
+  // Usar a leitura mais recente se disponível, caso contrário, usar a do conjunto de dados históricos
+  const lastUpdate = latestReading?.timestamp
+    ? new Date(latestReading.timestamp)
+    : hasData 
+      ? new Date(data.readings[data.readings.length - 1].timestamp || Date.now())
+      : new Date();
+
+  // Atualiza os estados de setpoints quando os dados mudam
+  useEffect(() => {
+    if (data?.setpoints) {
+      if (data.setpoints.temp) {
+        setTempSetpoints(data.setpoints.temp);
+      }
+      if (data.setpoints.level) {
+        setLevelSetpoints(data.setpoints.level);
+      }
+    }
+  }, [data?.setpoints]);
+
+  // Calcular o período mostrado para exibir como subtítulo
+  const getTimeRangeLabel = useCallback(() => {
+    if (!hasData || data?.readings.length < 2) return "Período: N/A";
+    
+    const firstReadingTime = data.readings[0].timestamp;
+    const lastReadingTime = data.readings[data.readings.length - 1].timestamp;
+    
+    // Utilizando valores padrão para evitar erros com null
+    const firstReading = new Date(firstReadingTime || Date.now());
+    const lastReading = new Date(lastReadingTime || Date.now());
+    
+    return `Período: ${formatTime(firstReading)} - ${formatTime(lastReading)}`;
+  }, [hasData, data?.readings]);
+  
+  // Calcular min/max/avg para temperatura e nível
+  const calcTempMinMax = useCallback(() => {
+    if (!hasData || !data?.readings || data.readings.length < 2) return { min: 0, max: 0, avg: 0 };
+    
+    // Filtra valores válidos (não zero)
+    const validTemps = data.readings
+      .map(reading => reading.temperature)
+      .filter(temp => temp > 0);
+    
+    if (validTemps.length === 0) return { min: 0, max: 0, avg: 0 };
+    
+    const sum = validTemps.reduce((a, b) => a + b, 0);
+    const avg = sum / validTemps.length;
+    
+    return {
+      min: Math.min(...validTemps),
+      max: Math.max(...validTemps),
+      avg: avg
+    };
+  }, [hasData, data?.readings]);
+  
+  const calcLevelMinMax = useCallback(() => {
+    if (!hasData || !data?.readings || data.readings.length < 2) return { min: 0, max: 0, avg: 0 };
+    
+    // Filtra valores válidos (não zero)
+    const validLevels = data.readings
+      .map(reading => reading.level)
+      .filter(level => level > 0);
+    
+    if (validLevels.length === 0) return { min: 0, max: 0, avg: 0 };
+    
+    const sum = validLevels.reduce((a, b) => a + b, 0);
+    const avg = sum / validLevels.length;
+    
+    return {
+      min: Math.min(...validLevels),
+      max: Math.max(...validLevels),
+      avg: avg
+    };
+  }, [hasData, data?.readings]);
+  
+  // Calcula estatísticas dos dados
+  const tempStats = calcTempMinMax();
+  const levelStats = calcLevelMinMax();
+  
+  // Criar uma cópia das leituras históricas e adicionar a leitura em tempo real, se disponível
+  const combinedReadings = useMemo(() => {
+    if (!data?.readings || !latestReading) return data?.readings || [];
+    
+    // Se a última leitura já estiver incluída nas leituras históricas, não a adicione novamente
+    const lastReading = data.readings[data.readings.length - 1];
+    const latestTimestamp = latestReading.timestamp ? new Date(latestReading.timestamp).getTime() : 0;
+    const lastTimestamp = lastReading?.timestamp ? new Date(lastReading.timestamp).getTime() : 0;
+    
+    if (latestTimestamp <= lastTimestamp) {
+      return data.readings;
+    }
+    
+    // Adicionar a leitura mais recente ao final das leituras históricas
+    return [...data.readings, latestReading];
+  }, [data?.readings, latestReading]);
+
+  // Mutations para buscar dados históricos de temperatura
+  const tempHistoricalMutation = useMutation({
+    mutationFn: () => {
+      if (!tempDateRange?.from) {
+        toast({
+          title: "Selecione um período",
+          description: "Por favor, selecione uma data inicial para temperatura.",
+          variant: "destructive",
+        });
+        throw new Error("Intervalo de datas incompleto");
+      }
+      
+      const endDate = tempDateRange.to || new Date();
+      const startDate = tempDateRange.from;
+      
+      const formattedStartDate = formatDateForQuery(startDate);
+      const formattedEndDate = formatDateForQuery(endDate);
+      
+      console.log(`Buscando dados históricos de temperatura de ${formattedStartDate} até ${formattedEndDate}`);
+      
+      return getHistoricalReadings(formattedStartDate, formattedEndDate, 'daily');
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Dados de temperatura carregados",
+        description: `${data.readings.length} registros de temperatura.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/historical-data/daily'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível buscar os dados históricos de temperatura.",
+        variant: "destructive",
+      });
+      console.error("Erro em dados de temperatura:", error);
+    }
+  });
+  
+  // Mutations para buscar dados históricos de nível
+  const levelHistoricalMutation = useMutation({
+    mutationFn: () => {
+      if (!levelDateRange?.from) {
+        toast({
+          title: "Selecione um período",
+          description: "Por favor, selecione uma data inicial para nível de água.",
+          variant: "destructive",
+        });
+        throw new Error("Intervalo de datas incompleto");
+      }
+      
+      const endDate = levelDateRange.to || new Date();
+      const startDate = levelDateRange.from;
+      
+      const formattedStartDate = formatDateForQuery(startDate);
+      const formattedEndDate = formatDateForQuery(endDate);
+      
+      console.log(`Buscando dados históricos de nível de ${formattedStartDate} até ${formattedEndDate}`);
+      
+      return getHistoricalReadings(formattedStartDate, formattedEndDate, 'daily');
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Dados de nível carregados",
+        description: `${data.readings.length} registros de nível da água.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/historical-data/daily'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível buscar os dados históricos de nível de água.",
+        variant: "destructive",
+      });
+      console.error("Erro em dados de nível:", error);
+    }
+  });
+
+  // Handlers para os botões
+  const handleLoadTempData = () => {
+    if (!tempDateRange?.from) {
+      toast({
+        title: "Selecione um período",
+        description: "Selecione uma data inicial para os dados de temperatura.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    tempHistoricalMutation.mutate();
+  };
+  
+  const handleLoadLevelData = () => {
+    if (!levelDateRange?.from) {
+      toast({
+        title: "Selecione um período",
+        description: "Selecione uma data inicial para os dados de nível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    levelHistoricalMutation.mutate();
+  };
+
+  return (
+    <div className="px-3 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+        
+        {/* Temperature Chart */}
+        <div className="bg-[#0f172a] rounded-lg shadow border border-white/5 overflow-hidden">
+          {/* Temperature Header with Calendar and Button */}
+          <div className="px-3 py-2 border-b border-white/5 bg-[#0e1628]/80">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-2">
+              <div className="flex items-center justify-between w-full lg:w-auto">
+                <div className="flex items-center gap-1.5">
+                  <i className="fas fa-thermometer-half text-blue-400"></i>
+                  <span className="text-sm text-white font-medium">Temperatura</span>
+                </div>
+                <div className="flex items-center gap-1.5 lg:hidden">
+                  <div className="flex items-center gap-0.5 text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#4caf50]"></span>
+                    <span className="text-[10px] text-gray-400">Normal</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 text-xs ml-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#ef5350]"></span>
+                    <span className="text-[10px] text-gray-400">Alerta</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Indicador de tempo real */}
+              <div className="flex items-center ml-auto">
+                <span className="text-xs text-blue-400 italic">Tempo real</span>
+              </div>
+              
+              <div className="hidden lg:flex items-center gap-1.5">
+                <div className="flex items-center gap-0.5 text-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4caf50]"></span>
+                  <span className="text-[10px] text-gray-400">Normal</span>
+                </div>
+                <div className="flex items-center gap-0.5 text-xs ml-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ef5350]"></span>
+                  <span className="text-[10px] text-gray-400">Alerta</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Temperature Chart Content */}
+          <div className="p-2">
+            {/* Chart */}
+            <div className="flex-1 bg-[#0e1628]/30 rounded border border-white/5 p-1 min-w-0 lg:min-w-[500px]">
+              {isLoading || tempHistoricalMutation.isPending ? (
+                <div className="h-[170px] flex items-center justify-center">
+                  <span className="text-xs flex items-center gap-1">
+                    <i className="fas fa-circle-notch fa-spin text-[10px]"></i>
+                    <span>Carregando dados...</span>
+                  </span>
+                </div>
+              ) : (combinedReadings && combinedReadings.length > 0) ? (
+                <div className="space-y-4">
+                  {/* Barra horizontal para temperatura */}
+                  <HorizontalTemperatureBar 
+                    value={latestReading?.temperature || tempStats.avg}
+                    min={tempSetpoints.min}
+                    max={tempSetpoints.max}
+                    avg={tempSetpoints.avg}
+                    height={60}
+                    showLimits={true}
+                    showValue={true}
+                    showAvg={true}
+                  />
+                  
+                  {/* Removido gráfico de linha para manter apenas a barra horizontal */}
+                </div>
+              ) : (
+                <div className="h-[170px] flex items-center justify-center">
+                  <span className="text-xs flex items-center gap-1 text-blue-400">
+                    <i className="fas fa-info-circle"></i>
+                    <span>Sem dados disponíveis</span>
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Stats - Horizontal (on bottom) */}
+            {hasData && (
+              <div className="flex text-center bg-[#0e1628]/10 rounded border border-white/5 mt-2">
+                <div className="flex-1 p-1 border-r border-white/5">
+                  <div className="text-[8px] uppercase text-blue-300/70">Média</div>
+                  <div className={`text-xs font-medium ${tempStats.min < 10 ? 'text-blue-400' : tempStats.max > 30 ? 'text-red-400' : 'text-green-400'}`}>
+                    {formatNumber(tempStats.min)}°C
+                  </div>
+                </div>
+                <div className="flex-1 p-1 border-r border-white/5">
+                  <div className="text-[8px] uppercase text-blue-300/70">Mín</div>
+                  <div className="text-xs font-medium text-blue-400">
+                    {formatNumber(tempStats.min)}°C
+                  </div>
+                </div>
+                <div className="flex-1 p-1 border-r border-white/5">
+                  <div className="text-[8px] uppercase text-blue-300/70">Máx</div>
+                  <div className="text-xs font-medium text-red-400">
+                    {formatNumber(tempStats.max)}°C
+                  </div>
+                </div>
+                <div className="flex-1 p-1">
+                  <div className="text-[8px] uppercase text-blue-300/70">Última</div>
+                  <div className="text-xs font-medium text-purple-400">
+                    {latestReading ? formatNumber(latestReading.temperature) : "--"}°C
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Water Level Chart */}
+        <div className="bg-[#0f172a] rounded-lg shadow border border-white/5 overflow-hidden">
+          {/* Water Level Header with Calendar and Button */}
+          <div className="px-3 py-2 border-b border-white/5 bg-[#0e1628]/80">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-2">
+              <div className="flex items-center justify-between w-full lg:w-auto">
+                <div className="flex items-center gap-1.5">
+                  <i className="fas fa-water text-blue-400"></i>
+                  <span className="text-sm text-white font-medium">Nível da Água</span>
+                </div>
+                <div className="flex items-center gap-1.5 lg:hidden">
+                  <div className="flex items-center gap-0.5 text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#4caf50]"></span>
+                    <span className="text-[10px] text-gray-400">Normal</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 text-xs ml-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#ef5350]"></span>
+                    <span className="text-[10px] text-gray-400">Alerta</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Indicador de tempo real */}
+              <div className="flex items-center ml-auto">
+                <span className="text-xs text-blue-400 italic">Tempo real</span>
+              </div>
+              
+              <div className="hidden lg:flex items-center gap-1.5">
+                <div className="flex items-center gap-0.5 text-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4caf50]"></span>
+                  <span className="text-[10px] text-gray-400">Normal</span>
+                </div>
+                <div className="flex items-center gap-0.5 text-xs ml-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ef5350]"></span>
+                  <span className="text-[10px] text-gray-400">Alerta</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Water Level Chart Content */}
+          <div className="p-2">
+            {/* Chart */}
+            <div className="flex-1 bg-[#0e1628]/30 rounded border border-white/5 p-1 min-w-0 lg:min-w-[500px]">
+              {isLoading || levelHistoricalMutation.isPending ? (
+                <div className="h-[170px] flex items-center justify-center">
+                  <span className="text-xs flex items-center gap-1">
+                    <i className="fas fa-circle-notch fa-spin text-[10px]"></i>
+                    <span>Carregando dados...</span>
+                  </span>
+                </div>
+              ) : (combinedReadings && combinedReadings.length > 0) ? (
+                <div className="space-y-4">
+                  {/* Barra horizontal para nível de água */}
+                  <HorizontalLevelBar 
+                    value={latestReading ? convertLevelToPercent(latestReading.level) : levelStats.avg}
+                    min={levelSetpoints.min}
+                    max={levelSetpoints.max}
+                    avg={levelSetpoints.avg}
+                    height={60}
+                    showLimits={true}
+                    showValue={true}
+                    showAvg={true}
+                  />
+                  
+                  {/* Removido gráfico de linha para manter apenas a barra horizontal */}
+                </div>
+              ) : (
+                <div className="h-[170px] flex items-center justify-center">
+                  <span className="text-xs flex items-center gap-1 text-blue-400">
+                    <i className="fas fa-info-circle"></i>
+                    <span>Sem dados disponíveis</span>
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Stats - Horizontal (on bottom) */}
+            {hasData && (
+              <div className="flex text-center bg-[#0e1628]/10 rounded border border-white/5 mt-2">
+                <div className="flex-1 p-1 border-r border-white/5">
+                  <div className="text-[8px] uppercase text-blue-300/70">Média</div>
+                  <div className="text-xs font-medium text-green-400">
+                    {formatNumber(levelStats.avg * 100)}%
+                  </div>
+                </div>
+                <div className="flex-1 p-1 border-r border-white/5">
+                  <div className="text-[8px] uppercase text-blue-300/70">Mín</div>
+                  <div className="text-xs font-medium text-red-400">
+                    {formatNumber(levelStats.min * 100)}%
+                  </div>
+                </div>
+                <div className="flex-1 p-1 border-r border-white/5">
+                  <div className="text-[8px] uppercase text-blue-300/70">Máx</div>
+                  <div className="text-xs font-medium text-blue-400">
+                    {formatNumber(levelStats.max * 100)}%
+                  </div>
+                </div>
+                <div className="flex-1 p-1">
+                  <div className="text-[8px] uppercase text-blue-300/70">Última</div>
+                  <div className="text-xs font-medium text-purple-400">
+                    {latestReading ? formatNumber(latestReading.level * 100) : "--"}%
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

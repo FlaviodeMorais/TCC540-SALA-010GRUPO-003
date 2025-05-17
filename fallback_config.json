@@ -1,0 +1,35 @@
+{
+  "config": {
+    "enabled": true,
+    "temperature": {
+      "min": 18,
+      "max": 32,
+      "current": 24.5,
+      "fluctuation": 0.5
+    },
+    "level": {
+      "min": 20,
+      "max": 100,
+      "current": 85,
+      "fluctuation": 2
+    },
+    "pumpState": false,
+    "heaterState": false,
+    "operationMode": false,
+    "targetTemp": 26.5,
+    "pumpOnTimer": 15,
+    "pumpOffTimer": 30,
+    "mode": "fluctuating"
+  },
+  "sources": {
+    "temperature": "hardware",
+    "level": "hardware",
+    "pumpStatus": "hardware",
+    "heaterStatus": "hardware",
+    "operationMode": "hardware",
+    "targetTemp": "hardware",
+    "pumpOnTimer": "hardware",
+    "pumpOffTimer": "hardware"
+  },
+  "savedAt": "2025-05-17T17:59:50.054Z"
+}
