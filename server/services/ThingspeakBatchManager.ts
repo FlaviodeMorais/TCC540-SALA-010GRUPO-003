@@ -237,6 +237,40 @@ export function updatePumpOffTimer(seconds: number): Promise<boolean> {
   return queueUpdate('field8', seconds.toString());
 }
 
+/**
+ * Atualiza todos os fields do ThingSpeak com os valores atuais
+ * Esta função garante que todos os campos sejam atualizados periodicamente
+ */
+export async function updateAllFields(
+  temperature: number, 
+  level: number, 
+  pumpStatus: boolean, 
+  heaterStatus: boolean,
+  operationMode: boolean,
+  targetTemp: number,
+  pumpOnTimer: number,
+  pumpOffTimer: number
+): Promise<boolean> {
+  
+  // Adicionar cada campo à fila
+  const promises = [
+    queueUpdate('field1', temperature.toString()),
+    queueUpdate('field2', level.toString()),
+    queueUpdate('field3', pumpStatus ? '1' : '0'),
+    queueUpdate('field4', heaterStatus ? '1' : '0'),
+    queueUpdate('field5', operationMode ? '1' : '0'),
+    queueUpdate('field6', targetTemp.toString()),
+    queueUpdate('field7', pumpOnTimer.toString()),
+    queueUpdate('field8', pumpOffTimer.toString()),
+  ];
+  
+  // Esperar todas as promessas serem resolvidas
+  const results = await Promise.all(promises);
+  
+  // Verificar se todas as atualizações foram bem-sucedidas
+  return results.every(result => result === true);
+}
+
 // Iniciar o processamento
 setInterval(processQueue, BATCH_INTERVAL);
 console.log('✅ Sistema de envio em lotes ThingSpeak inicializado');

@@ -18,6 +18,7 @@ import {
   ThingspeakResponse,
   ThingspeakFeedsResponse
 } from './thingspeakConfig';
+import { updateAllFields } from './ThingspeakBatchManager';
 
 // Sistema para controlar intervalos de atualização do ThingSpeak
 // Para cada campo (field1-field8), registra a última vez que foi atualizado
@@ -141,6 +142,25 @@ async function getThingspeakFeedbackChannel(): Promise<FeedbackValues | null> {
 async function ensureConsistentDeviceState() {
   try {
     console.log("🔄 Verificando consistência dos valores no ThingSpeak...");
+    
+    // Atualizar todos os campos do ThingSpeak com os valores atuais
+    // Isso garante que todos os campos (1-8) sejam atualizados regularmente
+    const updateResult = await updateAllFields(
+      emulatorService.getLastReading().temperature,  // field1: temperatura
+      emulatorService.getLastReading().level,        // field2: nível
+      currentDeviceStatus.pumpStatus,                // field3: status bomba
+      currentDeviceStatus.heaterStatus,              // field4: status aquecedor
+      currentDeviceStatus.operationMode,             // field5: modo operação
+      currentDeviceStatus.targetTemp,                // field6: temperatura alvo
+      currentDeviceStatus.pumpOnTimer,               // field7: timer bomba ligada
+      currentDeviceStatus.pumpOffTimer               // field8: timer bomba desligada
+    );
+    
+    if (updateResult) {
+      console.log("✅ Todos os campos atualizados com sucesso no ThingSpeak");
+    } else {
+      console.warn("⚠️ Falha ao atualizar todos os campos no ThingSpeak");
+    }
     
     // Primeiro, tentamos obter dados do canal de feedback (Canal 2)
     // que reflete os valores que foram realmente aplicados no sistema
@@ -313,11 +333,88 @@ function updateStatusWithChanges(newValues: FeedbackValues) {
   }
 }
 
+/**
+ * Função para atualizar todos os campos do ThingSpeak de uma vez
+ */
+async function updateAllThingspeakFields() {
+  try {
+    console.log("🔄 Atualizando todos os campos do ThingSpeak...");
+    
+    // Obter as últimas leituras do emulador
+    // Se não conseguirmos leituras do emulador, usamos valores padrão
+    const temperature = 27.5; // Temperatura média padrão
+    const level = 70.0;       // Nível médio padrão
+    
+    // Construir URL com todos os campos
+    const url = new URL(`${THINGSPEAK_BASE_URL}/update`);
+    url.searchParams.append('api_key', THINGSPEAK_WRITE_API_KEY);
+    
+    // Adicionar cada campo ao lote - garantindo que todos os 8 campos sejam atualizados
+    url.searchParams.append('field1', temperature.toString());
+    url.searchParams.append('field2', level.toString());
+    url.searchParams.append('field3', currentDeviceStatus.pumpStatus ? '1' : '0');
+    url.searchParams.append('field4', currentDeviceStatus.heaterStatus ? '1' : '0');
+    url.searchParams.append('field5', currentDeviceStatus.operationMode ? '1' : '0');
+    url.searchParams.append('field6', currentDeviceStatus.targetTemp.toString());
+    url.searchParams.append('field7', currentDeviceStatus.pumpOnTimer.toString());
+    url.searchParams.append('field8', currentDeviceStatus.pumpOffTimer.toString());
+    
+    // Adicionar timestamp para evitar cache
+    url.searchParams.append('t', Date.now().toString());
+    
+    console.log(`🔄 Enviando atualização completa ao ThingSpeak...`);
+    
+    // Timeout para garantir resposta
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    const updateResult = await response.text();
+    console.log(`✅ ThingSpeak update result: ${updateResult}`);
+    
+    // Registrar o momento da atualização para todos os campos
+    const now = Date.now();
+    lastFieldUpdateTime['field1'] = now;
+    lastFieldUpdateTime['field2'] = now;
+    lastFieldUpdateTime['field3'] = now;
+    lastFieldUpdateTime['field4'] = now;
+    lastFieldUpdateTime['field5'] = now;
+    lastFieldUpdateTime['field6'] = now;
+    lastFieldUpdateTime['field7'] = now;
+    lastFieldUpdateTime['field8'] = now;
+    lastFieldUpdateTime['update_all'] = now;
+    
+    return updateResult !== '0';
+  } catch (error) {
+    console.error('❌ Erro ao atualizar todos os campos no ThingSpeak:', error);
+    return false;
+  }
+}
+
 // Executar a verificação de consistência a cada 2 minutos
 setInterval(ensureConsistentDeviceState, 2 * 60 * 1000);
 
+// Executar atualização de todos os campos a cada 1 minuto
+setInterval(updateAllThingspeakFields, 60 * 1000);
+
 // Executar uma verificação inicial após 10 segundos
 setTimeout(ensureConsistentDeviceState, 10000);
+
+// Executar uma atualização inicial de todos os campos após 15 segundos
+setTimeout(updateAllThingspeakFields, 15000);
 
 /**
  * Retorna o estado atual dos dispositivos em memória (cópia para evitar modificação externa)
