@@ -19,6 +19,12 @@ import {
   ThingspeakFeedsResponse
 } from './thingspeakConfig';
 
+// Sistema para controlar intervalos de atualização do ThingSpeak
+// Para cada campo (field1-field8), registra a última vez que foi atualizado
+const lastFieldUpdateTime: Record<string, number> = {};
+// Intervalo mínimo entre escritas ao ThingSpeak (5 segundos)
+const MIN_UPDATE_INTERVAL_MS = 5000;
+
 // Interface para os valores de feedback do ThingSpeak
 interface FeedbackValues {
   pumpStatus: boolean;
@@ -595,6 +601,7 @@ export async function updatePumpStatus(status: boolean): Promise<boolean> {
     console.log(`🔄 Status da bomba também atualizado no emulador: ${status ? 'LIGADA' : 'DESLIGADA'}`);
   }
   
+  // Usar o método de atualização de campo com intervalo controlado
   return updateField('field3', status ? '1' : '0');
 }
 
@@ -615,7 +622,7 @@ export async function updateHeaterStatus(status: boolean): Promise<boolean> {
     console.log(`🔄 Status do aquecedor também atualizado no emulador: ${status ? 'LIGADO' : 'DESLIGADO'}`);
   }
   
-  // Lógica normal: true -> '1', false -> '0'
+  // Usar o método de atualização de campo com intervalo controlado
   return updateField('field4', status ? '1' : '0');
 }
 
@@ -631,6 +638,7 @@ export async function updateOperationMode(isAutomatic: boolean): Promise<boolean
   // Preservar a targetTemp atual - não resetar para valor padrão ao mudar modos
   // Este é o ponto chave para manter a temperatura alvo ao alternar modos
   
+  // Usar o método de atualização de campo com intervalo controlado
   return updateField('field5', isAutomatic ? '1' : '0');
 }
 
@@ -645,6 +653,7 @@ export async function updateTargetTemperature(temperature: number): Promise<bool
   currentDeviceStatus.targetTemp = safeTemp;
   currentDeviceStatus.lastUpdate = new Date();
   
+  // Usar o método de atualização de campo com intervalo controlado
   return updateField('field6', safeTemp.toString());
 }
 
@@ -671,6 +680,7 @@ export async function updatePumpOnTimer(seconds: number): Promise<boolean> {
     console.error('⚠️ Erro ao atualizar timer no serviço de automação:', error);
   }
   
+  // Usar o método de atualização de campo com intervalo controlado
   return updateField('field7', safeSeconds.toString());
 }
 
@@ -760,8 +770,20 @@ export async function updateDeviceStatus(pumpStatus: boolean, heaterStatus: bool
         Aquecedor: ${heaterStatus ? 'LIGADO' : 'DESLIGADO'}`);
     }
     
+    // Verificar o tempo desde a última atualização
+    const now = Date.now();
+    const lastUpdate = lastFieldUpdateTime['update_all'] || 0;
+    const elapsed = now - lastUpdate;
+    
+    // Se a última atualização foi muito recente, aguardar
+    if (lastUpdate > 0 && elapsed < MIN_UPDATE_INTERVAL_MS) {
+      const waitTime = MIN_UPDATE_INTERVAL_MS - elapsed;
+      console.log(`⏱️ Aguardando ${Math.ceil(waitTime/1000)}s antes de enviar atualização múltipla ao ThingSpeak...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
     // Adicionar timestamp para evitar cache
-    const timestamp = new Date().getTime();
+    const timestamp = Date.now();
     
     const url = new URL(`${THINGSPEAK_BASE_URL}/update`);
     url.searchParams.append('api_key', THINGSPEAK_WRITE_API_KEY);
@@ -801,6 +823,12 @@ export async function updateDeviceStatus(pumpStatus: boolean, heaterStatus: bool
     
     const updateResult = await response.text();
     console.log(`✅ ThingSpeak update result: ${updateResult}`);
+    
+    // Se a atualização foi bem-sucedida, registrar o momento atual
+    if (updateResult !== '0') {
+      lastFieldUpdateTime['update_all'] = Date.now();
+    }
+    
     return updateResult !== '0';
     
   } catch (error) {

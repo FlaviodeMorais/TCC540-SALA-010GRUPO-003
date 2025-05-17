@@ -7,7 +7,7 @@
   },
   "fallback": {
     "autoFallback": true,
-    "failureThreshold": 3,
-    "recoveryThreshold": 2
+    "failureThreshold": 2,
+    "recoveryThreshold": 3
   }
 }

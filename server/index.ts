@@ -6,6 +6,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkHistoricalTables, initHistoricalDatabase } from "./services/historicalDataService";
 import { settingsRouter } from './routes-settings';
+// Importar o sistema de lotes do ThingSpeak
+import './services/integration';
 
 const app = express();
 app.use(express.json());

@@ -5,49 +5,49 @@
     "waterTemp": {
       "min": 27,
       "max": 28,
-      "current": 27.96,
+      "current": 27.38,
       "fluctuation": 0.3
     },
     "airTemp": {
       "min": 18,
       "max": 35,
-      "current": 32.14,
+      "current": 33.45,
       "fluctuation": 0.3
     },
     "waterLevel": {
       "min": 63,
       "max": 76,
-      "current": 74,
+      "current": 75.43,
       "fluctuation": 0.5
     },
     "flowRate": {
       "min": 0,
       "max": 10,
-      "current": 1.54,
+      "current": 1.71,
       "fluctuation": 0.5
     },
     "humidity": {
       "min": 40,
       "max": 90,
-      "current": 86.89,
+      "current": 85.42,
       "fluctuation": 2
     },
     "pumpPressure": {
       "min": 0,
       "max": 10,
-      "current": 7.23,
+      "current": 8.2,
       "fluctuation": 0.2
     },
     "phLevel": {
       "min": 6,
       "max": 8.5,
-      "current": 7.42,
+      "current": 7.5,
       "fluctuation": 0.2
     },
     "oxygenLevel": {
       "min": 5,
       "max": 8,
-      "current": 6.47,
+      "current": 7.12,
       "fluctuation": 0.5
     }
   },
