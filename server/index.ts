@@ -6,8 +6,11 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkHistoricalTables, initHistoricalDatabase } from "./services/historicalDataService";
 import { settingsRouter } from './routes-settings';
+import { setupAlertRoutes } from './routes-alerts';
 // Importar o sistema de lotes do ThingSpeak
 import './services/integration';
+// Importar serviço de alertas
+import './services/alertService';
 
 const app = express();
 app.use(express.json());
@@ -72,6 +75,10 @@ app.use((req, res, next) => {
   // Registrar rotas para configurações
   app.use('/api/settings', settingsRouter);
   console.log('⚙️ Rotas para configurações registradas.');
+  
+  // Registrar rotas para sistema de alertas
+  setupAlertRoutes(app);
+  console.log('📢 Rotas para sistema de alertas registradas.');
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

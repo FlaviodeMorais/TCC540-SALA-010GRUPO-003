@@ -1,6 +1,7 @@
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { BackupPanel } from "@/components/settings/BackupPanel";
 import { SensorConfigPanel } from "@/components/settings/SensorConfigPanel";
+import { AlertsTab } from "@/components/settings/AlertsTab";
 import SensorHealthCard from '@/components/emulator/SensorHealthCard';
 import SensorSourceControl from '@/components/emulator/SensorSourceControl';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +17,10 @@ export default function Settings() {
       <h1 className="text-2xl md:text-3xl font-bold my-6">Configurações do Sistema</h1>
       
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 w-full max-w-xl">
+        <TabsList className="grid grid-cols-5 w-full max-w-xl">
           <TabsTrigger value="general">Gerais</TabsTrigger>
           <TabsTrigger value="sensors">Sensores</TabsTrigger>
+          <TabsTrigger value="alerts">Alertas</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
           <TabsTrigger value="fallback">Fontes de Dados</TabsTrigger>
         </TabsList>
@@ -34,6 +36,11 @@ export default function Settings() {
         </TabsContent>
         
         {/* Tab: Backup */}
+        {/* Tab: Alertas por E-mail */}
+        <TabsContent value="alerts" className="space-y-6">
+          <AlertsTab />
+        </TabsContent>
+        
         <TabsContent value="backup" className="space-y-6">
           <BackupPanel />
         </TabsContent>

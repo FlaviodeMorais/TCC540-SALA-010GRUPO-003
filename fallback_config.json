@@ -22,14 +22,14 @@
     "mode": "fluctuating"
   },
   "sources": {
-    "temperature": "hardware",
-    "level": "hardware",
-    "pumpStatus": "hardware",
-    "heaterStatus": "hardware",
-    "operationMode": "hardware",
-    "targetTemp": "hardware",
-    "pumpOnTimer": "hardware",
-    "pumpOffTimer": "hardware"
+    "temperature": "virtual",
+    "level": "virtual",
+    "pumpStatus": "virtual",
+    "heaterStatus": "virtual",
+    "operationMode": "virtual",
+    "targetTemp": "virtual",
+    "pumpOnTimer": "virtual",
+    "pumpOffTimer": "virtual"
   },
-  "savedAt": "2025-05-17T21:11:51.731Z"
+  "savedAt": "2025-05-17T22:13:57.094Z"
 }

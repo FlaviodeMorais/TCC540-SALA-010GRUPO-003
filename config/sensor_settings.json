@@ -6,8 +6,8 @@
     "levelMax": 90
   },
   "fallback": {
-    "autoFallback": true,
-    "failureThreshold": 2,
-    "recoveryThreshold": 3
+    "autoFallback": false,
+    "failureThreshold": 3,
+    "recoveryThreshold": 2
   }
 }

@@ -340,10 +340,23 @@ async function updateAllThingspeakFields() {
   try {
     console.log("🔄 Atualizando todos os campos do ThingSpeak...");
     
-    // Obter as últimas leituras do emulador
-    // Se não conseguirmos leituras do emulador, usamos valores padrão
-    const temperature = 27.5; // Temperatura média padrão
-    const level = 70.0;       // Nível médio padrão
+    // Obter valores de temperatura e nível do emulador, se disponíveis
+    let temperature = 27.5; // Temperatura média padrão
+    let level = 70.0;       // Nível médio padrão
+    
+    // Tentar obter valores reais do emulador
+    try {
+      const lastReading = emulatorService.getLastReading();
+      if (lastReading && lastReading.field1 && parseFloat(lastReading.field1.toString()) > 0) {
+        temperature = parseFloat(lastReading.field1.toString());
+      }
+      if (lastReading && lastReading.field2 && parseFloat(lastReading.field2.toString()) > 0) {
+        level = parseFloat(lastReading.field2.toString());
+      }
+    } catch (error) {
+      console.warn("⚠️ Erro ao obter leituras do emulador:", error);
+      // Continuar com os valores padrão
+    }
     
     // Construir URL com todos os campos
     const url = new URL(`${THINGSPEAK_BASE_URL}/update`);
