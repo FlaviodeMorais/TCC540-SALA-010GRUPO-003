@@ -70,25 +70,6 @@ O sistema segue uma arquitetura de microserviços distribuída com comunicação
 └──────────────┘    └───────────────┘    └────────────────┘
 ```
 
-## Subsistema de Fallback
-
-Uma das características mais avançadas do sistema é seu mecanismo de fallback, que detecta automaticamente falhas em sensores físicos e alterna para fontes virtuais de dados:
-
-```
-┌─────────────────┐      ┌────────────────┐      ┌────────────────┐
-│                 │      │                │      │                │
-│ Sensor Físico   ├──┐   │ Detector de    │      │ Sensor Virtual │
-│                 │  ├──►│ Falhas         ├─────►│                │
-└─────────────────┘  │   │                │      └────────────────┘
-                     │   └────────────────┘
-┌─────────────────┐  │
-│                 │  │
-│ Monitoramento   ├──┘
-│ de Saúde        │
-│                 │
-└─────────────────┘
-```
-
 O sistema monitora continuamente:
 - Conectividade de sensores
 - Validade de leituras
@@ -138,4 +119,4 @@ O sistema monitora continuamente:
 
 Este sistema representa uma abordagem moderna para o monitoramento de aquaponia, utilizando conceitos de IoT, arquitetura distribuída e mecanismos de resiliência para garantir operação contínua mesmo em cenários de falha parcial. A combinação de tecnologias web contemporâneas com protocolos IoT estabelecidos resulta em uma plataforma robusta, extensível e de fácil manutenção.
 
-A interface do usuário intuitiva, combinada com a robustez da infraestrutura de backend, permite que tanto usuários técnicos quanto não-técnicos possam monitorar e controlar efetivamente seus sistemas aquapônicos, otimizando a produção e minimizando riscos operacionais.
+A interface do usuário intuitiva, combinada com a robustez da infraestrutura de backend, permite que tanto usuários possam monitorar e controlar efetivamente seus sistemas aquapônicos, otimizando a produção e minimizando riscos operacionais.
