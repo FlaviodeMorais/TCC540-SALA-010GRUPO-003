@@ -31,25 +31,23 @@ O sistema segue uma arquitetura de microserviços distribuída com comunicação
 1. **Frontend (Cliente Web)**:
    - Desenvolvido com React e TypeScript
    - Utiliza a biblioteca Tailwind CSS para estilização
-   - Componentes reutilizáveis baseados em shadcn/ui
    - Visualização de dados em tempo real com React Charts
 
 2. **Backend (Servidor Express)**:
    - Node.js com Express para APIs RESTful
-   - Middleware para autenticação e validação de requisições
+   - ThingSpeak (Middleware) para autenticação e validação de requisições
    - Integração com ThingSpeak para comunicação IoT
-   - Sistema de fallback para garantir resiliência
+
 
 3. **Armazenamento de Dados**:
    - SQLite para persistência local
    - Sistema de sincronização para garantir consistência
-   - Memcache para performance aprimorada
    - Mecanismo de backup automático
 
 4. **Sistema de Sensores**:
    - Sensores de temperatura da água
    - Sensores de nível da água
-   - Controle de bomba hidráulica
+   - Controle de bomba d'água
    - Controle de aquecedor
 
 ## Diagrama de Fluxo de Dados
@@ -103,17 +101,9 @@ O sistema monitora continuamente:
    - Monitoramento contínuo da saúde dos sensores
    - Detecção de leituras anômalas
 
-2. **Sistema de Fallback Inteligente**:
-   - Alternância automática para sensores virtuais quando necessário
-   - Calibração baseada em dados históricos
-
-3. **Persistência de Dados**:
+2. **Persistência de Dados**:
    - Armazenamento de leituras históricas para análise
    - Estimativa de tendências para previsão de condições
-
-4. **Sincronização Multi-fonte**:
-   - Integração com múltiplas fontes de dados
-   - Resolução de conflitos entre fontes
 
 ## Conclusão
 
